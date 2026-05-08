@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<!-- ── LOBBY SCREENS ─────────────────────────────────────── -->
+<div id="lobby-layer">
+  <div class="bg-animation">
+    <div class="card-float">♠</div>
+    <div class="card-float">♥</div>
+    <div class="card-float">♦</div>
+    <div class="card-float">♣</div>
+  </div>
+
+  <div class="lobby-wrap">
+    <div class="logo">
+      <span class="suit red">♥</span><span class="suit">♠</span>
+      <h1>POKER</h1>
+      <span class="suit red">♦</span><span class="suit">♣</span>
+    </div>
+
+    <div id="screen-main" class="card-panel">
+      <button class="btn btn-primary btn-large" onclick="showScreen('create')">Create Table</button>
+      <button class="btn btn-secondary btn-large" onclick="showScreen('join')">Join Table</button>
+    </div>
+
+    <div id="screen-create" class="card-panel hidden">
+      <h2>Create a Table</h2>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="create-name" placeholder="Enter your name" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label>Blind Level</label>
+        <select id="blind-select" onchange="updateBlindInfo()">
+          <option value="1 / 2">1 / 2 — Micro</option>
+          <option value="5 / 10">5 / 10</option>
+          <option value="25 / 50">25 / 50</option>
+          <option value="100 / 200" selected>100 / 200 — Medium</option>
+          <option value="500 / 1000">500 / 1,000 — High Stakes</option>
+          <option value="2K / 5K">2K / 5K — Nosebleed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Max Players</label>
+        <select id="max-players">
+          <option value="2">2 (Heads-Up)</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="9" selected>9 (Full Table)</option>
+        </select>
+      </div>
+      <div class="blind-info" id="blind-info">Starting chips: 20,000</div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="showScreen('main')">Back</button>
+        <button class="btn btn-primary" onclick="createLobby()">Create Table</button>
+      </div>
+    </div>
+
+    <div id="screen-join" class="card-panel hidden">
+      <h2>Join a Table</h2>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="join-name" placeholder="Enter your name" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label>Table Code</label>
+        <input type="text" id="join-code" placeholder="XXXXXX" maxlength="6"
+               style="text-transform:uppercase;letter-spacing:4px;font-size:1.4rem;text-align:center">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="showScreen('main')">Back</button>
+        <button class="btn btn-primary" onclick="joinLobby()">Join Table</button>
+      </div>
+    </div>
+
+    <div id="screen-lobby" class="card-panel hidden">
+      <div class="lobby-header">
+        <div>
+          <h2>Table Lobby</h2>
+          <div class="code-display">
+            Code: <span id="room-code">------</span>
+            <button class="copy-btn" onclick="copyCode()" title="Copy">⧉</button>
+          </div>
+          <div class="blind-badge" id="blind-badge"></div>
+        </div>
+      </div>
+      <div class="player-list" id="player-list"></div>
+      <div id="waiting-msg" class="waiting-msg">Waiting for players… Share the code!</div>
+      <button class="btn btn-primary btn-large" id="start-btn" onclick="startGame()" style="display:none">
+        Start Game ▶
+      </button>
+      <div class="error-msg" id="lobby-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GAME TABLE ─────────────────────────────────────────── -->
+<div id="game-layer" class="hidden">
+  <!-- Info bar -->
+  <div id="info-bar">
+    <span id="info-blinds"></span>
+    <span id="info-code"></span>
+    <button id="leave-btn" onclick="leaveGame()">Leave</button>
+  </div>
+
+  <!-- Table -->
+  <div id="table-wrap">
+    <div id="poker-table">
+      <div id="community-area">
+        <div id="stage-label"></div>
+        <div id="community-cards"></div>
+        <div id="pot-display"></div>
+        <div id="last-action-label"></div>
+      </div>
+      <div id="players-container"></div>
+    </div>
+  </div>
+
+  <!-- My hole cards -->
+  <div id="my-hole-cards"></div>
+
+  <!-- Action panel -->
+  <div id="action-panel" class="hidden">
+    <div id="current-bet-info"></div>
+    <div id="action-btns">
+      <button class="btn-action btn-fold" onclick="act('fold')">Fold</button>
+      <button class="btn-action btn-check" id="btn-check" onclick="act('check')">Check</button>
+      <button class="btn-action btn-call" id="btn-call" onclick="act('call')">Call</button>
+      <button class="btn-action btn-raise" onclick="openRaise()">Raise</button>
+      <button class="btn-action btn-allin" onclick="act('allin')">All-In</button>
+    </div>
+  </div>
+
+  <!-- Raise dialog -->
+  <div id="raise-overlay" class="hidden">
+    <div id="raise-dialog">
+      <h3>Raise Amount</h3>
+      <div id="raise-info"></div>
+      <input type="range" id="raise-slider" min="0" max="1000" step="1" oninput="updateRaiseDisplay()">
+      <div id="raise-value-display"></div>
+      <div class="raise-presets">
+        <button onclick="setRaiseMultiple(0.5)">½ Pot</button>
+        <button onclick="setRaiseMultiple(0.75)">¾ Pot</button>
+        <button onclick="setRaiseMultiple(1)">Pot</button>
+        <button onclick="setRaiseMax()">Max</button>
+      </div>
+      <div class="raise-btn-row">
+        <button class="btn-action btn-fold" onclick="closeRaise()">Cancel</button>
+        <button class="btn-action btn-raise" onclick="confirmRaise()">Raise</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Winner overlay -->
+  <div id="winner-overlay" class="hidden">
+    <div id="winner-content"></div>
+  </div>
+
+  <!-- Waiting overlay (in game layer, before first hand) -->
+  <div id="waiting-overlay">
+    <div id="waiting-box">
+      <h2>Waiting for host</h2>
+      <p id="wait-players"></p>
+      <div id="wait-code"></div>
+      <button id="host-start-btn" class="hidden" onclick="startGame()">Start Game ▶</button>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chat-panel">
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Chat…" maxlength="200" onkeydown="chatKey(event)">
+      <button onclick="sendChat()">→</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
