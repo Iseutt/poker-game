@@ -10,6 +10,7 @@ let isHost = false;
 let gameState = null;
 let myCards = [];
 let raiseMin = 0, raiseMax = 0;
+let tournamentOver = false;
 
 const STARTING_CHIPS = {
   '1 / 2': 200, '5 / 10': 1000, '25 / 50': 5000,
@@ -70,6 +71,7 @@ function createLobby() {
   const blindLabel = document.getElementById('blind-select').value;
   const maxPlayers = +document.getElementById('max-players').value;
   if (!name) { showToast('Enter your name'); return; }
+  if (!maxPlayers || maxPlayers < 2 || maxPlayers > 9) { showToast('Max players must be 2 – 9'); return; }
   myName = name;
   socket.emit('create_lobby', { name, blindLabel, maxPlayers });
 }
@@ -95,8 +97,13 @@ function startGame() {
 
 function leaveGame() {
   myId = null; myCode = null; myName = null; isHost = false;
+  tournamentOver = false;
   showLobbyLayer();
   showScreen('main');
+}
+
+function startNewGame() {
+  socket.emit('restart_game');
 }
 
 // ── Socket: lobby events ─────────────────────────────────────
@@ -179,6 +186,7 @@ socket.on('game_state', (state) => {
   myId = state.myId;
   myCards = state.myCards || [];
   isHost = state.isHost;
+  tournamentOver = false;
 
   showGameLayer();
   document.getElementById('waiting-overlay').classList.add('hidden');
@@ -186,11 +194,25 @@ socket.on('game_state', (state) => {
 });
 
 socket.on('game_ended', ({ winner }) => {
-  addChat('system', `Game over! ${winner || 'Someone'} wins!`);
-  setTimeout(() => { showLobbyLayer(); showScreen('main'); }, 5000);
+  addChat('system', `${winner || 'Someone'} is the last player — waiting for others to reconnect…`);
 });
 
-socket.on('player_busted', ({ name }) => addChat('system', `${name} is out of chips!`));
+socket.on('tournament_over', ({ winner, hostId }) => {
+  tournamentOver = true;
+  const overlay = document.getElementById('winner-overlay');
+  overlay.classList.remove('hidden');
+  const imHost = hostId === myId;
+  const actionHtml = imHost
+    ? `<button class="btn-action btn-raise" style="margin-top:18px;width:100%;font-size:1rem;padding:14px;" onclick="startNewGame()">▶ Start New Game</button>`
+    : `<p style="color:rgba(255,255,255,0.5);font-size:0.9rem;margin-top:14px;">Waiting for host to start a new game…</p>`;
+  document.getElementById('winner-content').innerHTML =
+    `<h2>Tournament Over!</h2>
+     <div class="winner-name">🏆 ${winner || 'Last Player'}</div>
+     <div class="winner-hand">wins the tournament!</div>
+     ${actionHtml}`;
+});
+
+socket.on('player_busted', ({ name }) => addChat('system', `${name} is out of chips and is now spectating`));
 socket.on('host_changed', ({ name }) => { addChat('system', `${name} is now the host`); });
 
 socket.on('error_msg', (msg) => {
@@ -317,13 +339,20 @@ function renderPlayers(state) {
 function renderMyCards() {
   const panel = document.getElementById('my-hole-cards');
   panel.innerHTML = '';
+  if (gameState && gameState.isSpectator) {
+    const badge = document.createElement('div');
+    badge.className = 'spectator-badge';
+    badge.textContent = 'SPECTATING';
+    panel.appendChild(badge);
+    return;
+  }
   if (!myCards || myCards.length === 0) return;
   for (const c of myCards) panel.appendChild(makeCard(c));
 }
 
 function renderActions(state) {
   const panel = document.getElementById('action-panel');
-  if (!state.isMyTurn || ['showdown','waiting'].includes(state.stage)) {
+  if (state.isSpectator || !state.isMyTurn || ['showdown','waiting'].includes(state.stage)) {
     panel.classList.add('hidden');
     return;
   }
@@ -356,6 +385,7 @@ function renderActions(state) {
 }
 
 function renderWinner(state) {
+  if (tournamentOver) return;
   const overlay = document.getElementById('winner-overlay');
   if (!state.winners || state.stage !== 'showdown') {
     overlay.classList.add('hidden');

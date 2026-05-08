@@ -268,7 +268,7 @@ html, body {
   transform: translateX(-50%);
   display: flex;
   gap: 10px;
-  z-index: 20;
+  z-index: 35;
 }
 
 #my-hole-cards .card {
@@ -290,7 +290,6 @@ html, body {
   left: 0;
   right: 0;
   background: rgba(13,17,23,0.95);
-  border-top: 1px solid rgba(212,175,55,0.2);
   padding: 12px 20px 16px;
   z-index: 30;
   backdrop-filter: blur(10px);
@@ -596,6 +595,19 @@ html, body {
 }
 
 .toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Spectator ── */
+.spectator-badge {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
 
 /* ── Responsive ── */
 @media (max-width: 600px) {

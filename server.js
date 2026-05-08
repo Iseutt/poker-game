@@ -58,15 +58,28 @@ function broadcastGameState(code) {
   const base = game.getPublicState();
 
   for (const player of game.players) {
-    const sockets = io.sockets.sockets;
-    const sock = sockets.get(player.id);
+    const sock = io.sockets.sockets.get(player.id);
     if (!sock) continue;
     sock.emit('game_state', {
       ...base,
       myId: player.id,
       myCards: player.cards.map(c => c.toJSON()),
       isMyTurn: base.currentPlayerId === player.id,
-      isHost: room.host === player.id
+      isHost: room.host === player.id,
+      isSpectator: false
+    });
+  }
+
+  for (const spec of room.spectators) {
+    const sock = io.sockets.sockets.get(spec.id);
+    if (!sock) continue;
+    sock.emit('game_state', {
+      ...base,
+      myId: spec.id,
+      myCards: [],
+      isMyTurn: false,
+      isHost: room.host === spec.id,
+      isSpectator: true
     });
   }
 }
@@ -77,13 +90,24 @@ function scheduleNextHand(code) {
     if (!room) return;
     const { game } = room;
 
-    // Remove busted players
+    // Move busted players to spectators
     const busted = game.players.filter(p => p.chips <= 0);
     for (const p of busted) {
       io.to(code).emit('player_busted', { name: p.name });
+      room.spectators.push({ id: p.id, name: p.name, connected: p.connected });
       game.removePlayer(p.id);
     }
 
+    // Tournament over: only one player left with chips
+    if (game.players.length < 2) {
+      const winner = game.players[0];
+      game.stage = 'waiting';
+      game.winners = null;
+      io.to(code).emit('tournament_over', { winner: winner?.name, hostId: room.host });
+      return;
+    }
+
+    // Not enough connected players — pause and wait for reconnects
     if (game.players.filter(p => p.connected).length < 2) {
       const last = game.players.find(p => p.connected);
       game.stage = 'waiting';
@@ -113,7 +137,7 @@ io.on('connection', (socket) => {
     const game = new PokerGame({ id: code, blinds, maxPlayers: maxPlayers || 9, startingChips });
 
     game.addPlayer(socket.id, name, startingChips);
-    rooms.set(code, { game, host: socket.id });
+    rooms.set(code, { game, host: socket.id, spectators: [] });
     socket.join(code);
     socket.data.room = code;
     socket.data.name = name;
@@ -172,6 +196,40 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('restart_game', () => {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (room.host !== socket.id) return socket.emit('error_msg', 'Only the host can start a new game');
+
+    const { game } = room;
+    const startingChips = game.config.startingChips;
+
+    // Re-add connected spectators as full players with fresh chips
+    for (const spec of room.spectators) {
+      if (!spec.connected) continue;
+      game.addPlayer(spec.id, spec.name, startingChips);
+      const p = game.players.find(pl => pl.id === spec.id);
+      if (p) p.connected = true;
+    }
+    room.spectators = [];
+
+    // Reset chips and state for all remaining players
+    for (const p of game.players) {
+      p.chips = startingChips;
+      p.bet = 0;
+      p.folded = false;
+      p.allIn = false;
+      p.cards = [];
+    }
+
+    game.stage = 'waiting';
+    const started = game.startGame();
+    if (!started) return socket.emit('error_msg', 'Need at least 2 players to start');
+
+    broadcastGameState(code);
+  });
+
   socket.on('chat_message', ({ message }) => {
     const code = socket.data.room;
     if (!code || !message) return;
@@ -195,10 +253,14 @@ io.on('connection', (socket) => {
         const remaining = game.players.filter(p => !p.folded);
         if (remaining.length === 1) scheduleNextHand(code);
       }
+    } else {
+      const spec = room.spectators.find(s => s.id === socket.id);
+      if (spec) spec.connected = false;
     }
 
     if (room.host === socket.id) {
-      const next = game.players.find(p => p.connected && p.id !== socket.id);
+      const next = game.players.find(p => p.connected && p.id !== socket.id)
+                || room.spectators.find(s => s.connected && s.id !== socket.id);
       if (next) {
         room.host = next.id;
         io.to(code).emit('host_changed', { name: next.name });

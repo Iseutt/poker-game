@@ -48,13 +48,8 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Max Players</label>
-        <select id="max-players">
-          <option value="2">2 (Heads-Up)</option>
-          <option value="4">4</option>
-          <option value="6">6</option>
-          <option value="9" selected>9 (Full Table)</option>
-        </select>
+        <label>Max Players (2 – 9)</label>
+        <input type="number" id="max-players" min="2" max="9" value="9" placeholder="Enter number of players">
       </div>
       <div class="blind-info" id="blind-info">Starting chips: 20,000</div>
       <div class="btn-row">
