@@ -102,7 +102,23 @@
   <div id="info-bar">
     <span id="info-blinds"></span>
     <span id="info-code"></span>
+    <button id="hands-btn" onclick="toggleHandsPanel()">🃏 Hands</button>
     <button id="leave-btn" onclick="leaveGame()">Leave</button>
+  </div>
+
+  <!-- Hands reference panel -->
+  <div id="hands-panel" class="hidden">
+    <div class="hands-title">Hand Rankings</div>
+    <div class="hand-item" data-hand="Royal Flush"><span class="hand-name">Royal Flush</span><span class="hand-ex">A♠ K♠ Q♠ J♠ 10♠</span></div>
+    <div class="hand-item" data-hand="Straight Flush"><span class="hand-name">Straight Flush</span><span class="hand-ex">9♥ 8♥ 7♥ 6♥ 5♥</span></div>
+    <div class="hand-item" data-hand="Four of a Kind"><span class="hand-name">Four of a Kind</span><span class="hand-ex">A♠ A♥ A♦ A♣ K</span></div>
+    <div class="hand-item" data-hand="Full House"><span class="hand-name">Full House</span><span class="hand-ex">A♠ A♥ A♦ K♠ K♥</span></div>
+    <div class="hand-item" data-hand="Flush"><span class="hand-name">Flush</span><span class="hand-ex">A♠ J♠ 8♠ 5♠ 2♠</span></div>
+    <div class="hand-item" data-hand="Straight"><span class="hand-name">Straight</span><span class="hand-ex">9♠ 8♥ 7♦ 6♣ 5♠</span></div>
+    <div class="hand-item" data-hand="Three of a Kind"><span class="hand-name">Three of a Kind</span><span class="hand-ex">A♠ A♥ A♦ K J</span></div>
+    <div class="hand-item" data-hand="Two Pair"><span class="hand-name">Two Pair</span><span class="hand-ex">A♠ A♥ K♦ K♣ J</span></div>
+    <div class="hand-item" data-hand="One Pair"><span class="hand-name">One Pair</span><span class="hand-ex">A♠ A♥ K♦ Q♣ J</span></div>
+    <div class="hand-item" data-hand="High Card"><span class="hand-name">High Card</span><span class="hand-ex">A K Q J 9</span></div>
   </div>
 
   <!-- Table -->

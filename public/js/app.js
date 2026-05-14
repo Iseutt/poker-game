@@ -17,6 +17,72 @@ const STARTING_CHIPS = {
   '100 / 200': 20000, '500 / 1000': 100000, '2K / 5K': 500000
 };
 
+// ── Hand evaluation (client-side) ────────────────────────────
+
+const RANK_VALS = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+const HAND_RANK_VAL = {'Royal Flush':9,'Straight Flush':8,'Four of a Kind':7,'Full House':6,'Flush':5,'Straight':4,'Three of a Kind':3,'Two Pair':2,'One Pair':1,'High Card':0};
+
+function cVal(c) { return RANK_VALS[c.rank]; }
+
+function evalFive(cards) {
+  const s = [...cards].sort((a,b) => cVal(b)-cVal(a));
+  const vals = s.map(cVal), suits = s.map(c => c.suit);
+  const flush = suits.every(x => x===suits[0]);
+  let str = true;
+  for (let i=0; i<4; i++) if (vals[i]-vals[i+1]!==1) { str=false; break; }
+  if (!str && vals[0]===14&&vals[1]===5&&vals[2]===4&&vals[3]===3&&vals[4]===2) str=true;
+  const freq = {};
+  for (const v of vals) freq[v]=(freq[v]||0)+1;
+  const cnt = Object.values(freq).sort((a,b)=>b-a);
+  if (flush&&str) return vals[0]===14&&vals[1]===13 ? 'Royal Flush' : 'Straight Flush';
+  if (cnt[0]===4) return 'Four of a Kind';
+  if (cnt[0]===3&&cnt[1]===2) return 'Full House';
+  if (flush) return 'Flush';
+  if (str) return 'Straight';
+  if (cnt[0]===3) return 'Three of a Kind';
+  if (cnt[0]===2&&cnt[1]===2) return 'Two Pair';
+  if (cnt[0]===2) return 'One Pair';
+  return 'High Card';
+}
+
+function evalBestHand(hole, community) {
+  const all = [...hole, ...community];
+  if (all.length < 2) return null;
+  if (all.length < 5) {
+    const freq = {};
+    for (const c of all) { const v=cVal(c); freq[v]=(freq[v]||0)+1; }
+    const cnt = Object.values(freq).sort((a,b)=>b-a);
+    if (cnt[0]===2&&cnt[1]===2) return 'Two Pair';
+    if (cnt[0]===2) return 'One Pair';
+    return 'High Card';
+  }
+  let best = null;
+  for (let a=0; a<all.length-4; a++)
+    for (let b=a+1; b<all.length-3; b++)
+      for (let c=b+1; c<all.length-2; c++)
+        for (let d=c+1; d<all.length-1; d++)
+          for (let e=d+1; e<all.length; e++) {
+            const name = evalFive([all[a],all[b],all[c],all[d],all[e]]);
+            if (!best || HAND_RANK_VAL[name]>HAND_RANK_VAL[best]) best=name;
+          }
+  return best;
+}
+
+// ── Hands Panel ───────────────────────────────────────────────
+
+function toggleHandsPanel() {
+  const panel = document.getElementById('hands-panel');
+  const btn   = document.getElementById('hands-btn');
+  const nowHidden = panel.classList.toggle('hidden');
+  btn.classList.toggle('active', !nowHidden);
+}
+
+function updateHandsPanel(currentHand) {
+  document.querySelectorAll('#hands-panel .hand-item').forEach(el => {
+    el.classList.toggle('current-hand', el.dataset.hand === currentHand);
+  });
+}
+
 // ── Screen routing ──────────────────────────────────────────
 
 function showScreen(name) {
@@ -98,6 +164,8 @@ function startGame() {
 function leaveGame() {
   myId = null; myCode = null; myName = null; isHost = false;
   tournamentOver = false;
+  document.getElementById('hands-panel').classList.add('hidden');
+  document.getElementById('hands-btn').classList.remove('active');
   showLobbyLayer();
   showScreen('main');
 }
@@ -232,6 +300,11 @@ function render(state) {
   renderMyCards();
   renderActions(state);
   renderWinner(state);
+  if (!state.isSpectator && myCards.length > 0) {
+    updateHandsPanel(evalBestHand(myCards, state.communityCards || []));
+  } else {
+    updateHandsPanel(null);
+  }
 }
 
 function renderInfoBar(state) {
@@ -397,8 +470,11 @@ function renderWinner(state) {
      <div class="winner-hand">${w.handName}</div>
      <div class="winner-amount">+${fmt(w.amount)}</div>`
   ).join('<hr style="margin:10px 0;opacity:0.2">');
+  const newGameBtn = isHost
+    ? `<button class="btn-action btn-secondary" style="margin-top:16px;width:100%;font-size:0.85rem;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#e8e8e8;cursor:pointer;" onclick="startNewGame()">↺ New Game</button>`
+    : '';
   document.getElementById('winner-content').innerHTML =
-    `<h2>Winner${state.winners.length > 1 ? 's' : ''}!</h2>${lines}`;
+    `<h2>Winner${state.winners.length > 1 ? 's' : ''}!</h2>${lines}${newGameBtn}`;
 }
 
 // ── Player positions ──────────────────────────────────────────

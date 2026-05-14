@@ -610,6 +610,79 @@ html, body {
   text-transform: uppercase;
 }
 
+/* ── Hands reference panel ── */
+#hands-btn {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+#hands-btn:hover { background: rgba(255,255,255,0.14); }
+#hands-btn.active { background: rgba(212,175,55,0.15); border-color: rgba(212,175,55,0.4); color: var(--gold); }
+
+#hands-panel {
+  position: fixed;
+  left: 16px;
+  top: 48px;
+  width: 190px;
+  background: rgba(13,17,23,0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  z-index: 40;
+  padding: 10px 8px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#hands-panel.hidden { display: none; }
+
+.hands-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.hand-item {
+  padding: 5px 8px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 1px;
+  border: 1px solid transparent;
+}
+
+.hand-item .hand-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+}
+
+.hand-item .hand-ex {
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.28);
+}
+
+.hand-item.current-hand {
+  background: rgba(192,57,43,0.18);
+  border-color: rgba(192,57,43,0.5);
+}
+
+.hand-item.current-hand .hand-name { color: #e74c3c; }
+.hand-item.current-hand .hand-ex  { color: rgba(231,76,60,0.55); }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   #poker-table { width: 98vw; height: 58vw; border-width: 6px; }
