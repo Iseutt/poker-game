@@ -346,8 +346,9 @@ class PokerGame {
         isDealer: i === this.dealerIndex,
         isSB: i === this.sbIndex,
         isBB: i === this.bbIndex,
-        // Reveal cards at real showdown (not last-player-standing)
-        cards: (this.stage === 'showdown' && !p.folded && !this._lastStanding) ? p.cards.map(c => c.toJSON()) : null
+        // Only auto-reveal the winner's cards; everyone else must click "Show Cards"
+        cards: (this.stage === 'showdown' && !this._lastStanding && this.winners && this.winners.some(w => w.id === p.id))
+          ? p.cards.map(c => c.toJSON()) : null
       }))
     };
   }

@@ -349,7 +349,8 @@ function renderPlayers(state) {
   container.innerHTML = '';
 
   const players = state.players;
-  const positions = getPositions(players.length);
+  const myIndex = players.findIndex(p => p.id === myId);
+  const positions = getPositions(players.length, myIndex >= 0 ? myIndex : 0);
 
   players.forEach((p, i) => {
     const seat = document.createElement('div');
@@ -484,13 +485,18 @@ function renderWinner(state) {
      <div class="winner-amount">+${fmt(w.amount)}</div>`
   ).join('<hr style="margin:10px 0;opacity:0.2">');
 
-  // "Show Cards" button: visible for folded players who haven't shown yet
+  // "Show Cards" button: any non-spectator whose cards aren't revealed yet
   const me = state.players.find(p => p.id === myId);
-  const isFolded = me && me.folded;
-  const alreadyShown = me && me.cards;
-  const showBtn = (isFolded && !alreadyShown && myCards.length > 0 && !hasShownCards)
-    ? `<button class="btn-action btn-call" style="margin-top:16px;width:100%;font-size:0.9rem;padding:11px;" onclick="showMyCards()">👁 Show My Cards</button>`
-    : (isFolded && alreadyShown ? `<div style="margin-top:12px;font-size:0.8rem;color:rgba(255,255,255,0.4);text-align:center;">Your cards are shown</div>` : '');
+  const alreadyRevealed = me && me.cards && me.cards.length > 0;
+  const isWinner = state.winners && state.winners.some(w => w.id === myId);
+  let showBtn = '';
+  if (!state.isSpectator && myCards.length > 0) {
+    if (!alreadyRevealed && !hasShownCards) {
+      showBtn = `<button class="btn-action btn-call" style="margin-top:16px;width:100%;font-size:0.9rem;padding:11px;" onclick="showMyCards()">👁 Show My Cards</button>`;
+    } else if (alreadyRevealed && !isWinner) {
+      showBtn = `<div style="margin-top:12px;font-size:0.8rem;color:rgba(255,255,255,0.4);text-align:center;">Your cards are shown ✓</div>`;
+    }
+  }
 
   document.getElementById('winner-content').innerHTML =
     `<h2>Winner${state.winners.length > 1 ? 's' : ''}!</h2>${lines}${showBtn}`;
@@ -498,11 +504,13 @@ function renderWinner(state) {
 
 // ── Player positions ──────────────────────────────────────────
 
-function getPositions(n) {
+function getPositions(n, myIndex = 0) {
   const cx = 50, cy = 50, rx = 52, ry = 56;
-  const startAngle = Math.PI / 2;
+  const startAngle = Math.PI / 2; // index 0 → bottom (6 o'clock)
   return Array.from({ length: n }, (_, i) => {
-    const a = startAngle + (2 * Math.PI * i) / n;
+    // Rotate so that myIndex always maps to the bottom seat
+    const rotated = (i - myIndex + n) % n;
+    const a = startAngle + (2 * Math.PI * rotated) / n;
     return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
   });
 }

@@ -246,6 +246,7 @@ io.on('connection', (socket) => {
     const player = game.players.find(p => p.id === socket.id);
     if (!player || !player.cards || player.cards.length === 0) return;
     if (room.shownCards[socket.id]) return; // already shown
+    // Any player (folded or not, winner or loser) may choose to reveal
     room.shownCards[socket.id] = player.cards.map(c => c.toJSON());
     broadcastGameState(code);
   });
