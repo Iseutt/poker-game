@@ -22,6 +22,7 @@ class PokerGame {
     this.sbIndex = -1;
     this.bbIndex = -1;
     this.deck = null;
+    this._lastStanding = false;
   }
 
   addPlayer(id, name, chips) {
@@ -77,6 +78,7 @@ class PokerGame {
     this.minRaise = this.blinds.big;
     this.winners = null;
     this.lastAction = null;
+    this._lastStanding = false;
 
     for (const p of this.players) {
       p.cards = [];
@@ -193,10 +195,12 @@ class PokerGame {
     // Check if only one player remains
     const remaining = this.players.filter(p => !p.folded);
     if (remaining.length === 1) {
-      remaining[0].chips += this.pot;
-      this.lastAction = { ...this.lastAction, wonPot: this.pot };
+      const wonAmount = this.pot;
+      remaining[0].chips += wonAmount;
+      this.lastAction = { ...this.lastAction, wonPot: wonAmount };
       this.pot = 0;
-      this.winners = [{ id: remaining[0].id, name: remaining[0].name, handName: 'Last Player Standing', amount: 0 }];
+      this._lastStanding = true;
+      this.winners = [{ id: remaining[0].id, name: remaining[0].name, handName: 'Last Player Standing', amount: wonAmount }];
       this.stage = 'showdown';
       return { handOver: true };
     }
@@ -327,6 +331,7 @@ class PokerGame {
       currentPlayerId: this.getCurrentPlayer()?.id || null,
       lastAction: this.lastAction,
       winners: this.winners,
+      lastStanding: this._lastStanding,
       players: this.players.map((p, i) => ({
         id: p.id,
         name: p.name,
@@ -339,8 +344,8 @@ class PokerGame {
         isDealer: i === this.dealerIndex,
         isSB: i === this.sbIndex,
         isBB: i === this.bbIndex,
-        // Reveal cards at showdown if not folded
-        cards: (this.stage === 'showdown' && !p.folded) ? p.cards.map(c => c.toJSON()) : null
+        // Reveal cards at real showdown (not last-player-standing)
+        cards: (this.stage === 'showdown' && !p.folded && !this._lastStanding) ? p.cards.map(c => c.toJSON()) : null
       }))
     };
   }

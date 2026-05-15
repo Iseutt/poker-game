@@ -11,6 +11,7 @@ let gameState = null;
 let myCards = [];
 let raiseMin = 0, raiseMax = 0;
 let tournamentOver = false;
+let hasShownCards = false;
 
 const STARTING_CHIPS = {
   '1 / 2': 200, '5 / 10': 1000, '25 / 50': 5000,
@@ -174,6 +175,12 @@ function startNewGame() {
   socket.emit('restart_game');
 }
 
+function showMyCards() {
+  hasShownCards = true;
+  socket.emit('show_cards');
+  if (gameState) renderWinner(gameState); // optimistic: hide the button immediately
+}
+
 // ── Socket: lobby events ─────────────────────────────────────
 
 socket.on('lobby_created', ({ code, playerId }) => {
@@ -255,6 +262,7 @@ socket.on('game_state', (state) => {
   myCards = state.myCards || [];
   isHost = state.isHost;
   tournamentOver = false;
+  if (state.stage !== 'showdown') hasShownCards = false;
 
   showGameLayer();
   document.getElementById('waiting-overlay').classList.add('hidden');
@@ -358,7 +366,12 @@ function renderPlayers(state) {
     const cardsDiv = document.createElement('div');
     cardsDiv.className = 'player-cards';
 
-    if (p.id !== myId || state.stage === 'showdown') {
+    if (p.id === myId) {
+      // Show the player's own cards face-up at their seat
+      const display = (state.stage === 'showdown' && p.cards) ? p.cards : myCards;
+      for (const c of display) cardsDiv.appendChild(makeCard(c, true));
+    } else {
+      // Other players: face-up if revealed (showdown / shown), face-down otherwise
       if (p.cards && p.cards.length > 0) {
         for (const c of p.cards) cardsDiv.appendChild(makeCard(c, true));
       } else if (p.cardCount > 0 && !p.folded) {
@@ -470,11 +483,17 @@ function renderWinner(state) {
      <div class="winner-hand">${w.handName}</div>
      <div class="winner-amount">+${fmt(w.amount)}</div>`
   ).join('<hr style="margin:10px 0;opacity:0.2">');
-  const newGameBtn = isHost
-    ? `<button class="btn-action btn-secondary" style="margin-top:16px;width:100%;font-size:0.85rem;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#e8e8e8;cursor:pointer;" onclick="startNewGame()">↺ New Game</button>`
-    : '';
+
+  // "Show Cards" button: visible for folded players who haven't shown yet
+  const me = state.players.find(p => p.id === myId);
+  const isFolded = me && me.folded;
+  const alreadyShown = me && me.cards;
+  const showBtn = (isFolded && !alreadyShown && myCards.length > 0 && !hasShownCards)
+    ? `<button class="btn-action btn-call" style="margin-top:16px;width:100%;font-size:0.9rem;padding:11px;" onclick="showMyCards()">👁 Show My Cards</button>`
+    : (isFolded && alreadyShown ? `<div style="margin-top:12px;font-size:0.8rem;color:rgba(255,255,255,0.4);text-align:center;">Your cards are shown</div>` : '');
+
   document.getElementById('winner-content').innerHTML =
-    `<h2>Winner${state.winners.length > 1 ? 's' : ''}!</h2>${lines}${newGameBtn}`;
+    `<h2>Winner${state.winners.length > 1 ? 's' : ''}!</h2>${lines}${showBtn}`;
 }
 
 // ── Player positions ──────────────────────────────────────────

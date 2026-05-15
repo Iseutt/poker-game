@@ -57,6 +57,12 @@ function broadcastGameState(code) {
   const { game } = room;
   const base = game.getPublicState();
 
+  // Merge voluntarily shown cards from folded players
+  base.players = base.players.map(p => ({
+    ...p,
+    cards: p.cards || room.shownCards[p.id] || null
+  }));
+
   for (const player of game.players) {
     const sock = io.sockets.sockets.get(player.id);
     if (!sock) continue;
@@ -116,10 +122,11 @@ function scheduleNextHand(code) {
       return;
     }
 
+    room.shownCards = {};
     game.stage = 'waiting';
     game.startGame();
     broadcastGameState(code);
-  }, 6000);
+  }, 8000);
 }
 
 io.on('connection', (socket) => {
@@ -137,7 +144,7 @@ io.on('connection', (socket) => {
     const game = new PokerGame({ id: code, blinds, maxPlayers: maxPlayers || 9, startingChips });
 
     game.addPlayer(socket.id, name, startingChips);
-    rooms.set(code, { game, host: socket.id, spectators: [] });
+    rooms.set(code, { game, host: socket.id, spectators: [], shownCards: {} });
     socket.join(code);
     socket.data.room = code;
     socket.data.name = name;
@@ -227,6 +234,19 @@ io.on('connection', (socket) => {
     const started = game.startGame();
     if (!started) return socket.emit('error_msg', 'Need at least 2 players to start');
 
+    broadcastGameState(code);
+  });
+
+  socket.on('show_cards', () => {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    if (!room) return;
+    const { game } = room;
+    if (game.stage !== 'showdown') return;
+    const player = game.players.find(p => p.id === socket.id);
+    if (!player || !player.cards || player.cards.length === 0) return;
+    if (room.shownCards[socket.id]) return; // already shown
+    room.shownCards[socket.id] = player.cards.map(c => c.toJSON());
     broadcastGameState(code);
   });
 
