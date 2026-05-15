@@ -212,6 +212,8 @@ class PokerGame {
       this._advanceToNextPlayer();
     }
 
+    // _advanceStage may have triggered _doShowdown — if so, hand is over
+    if (this.stage === 'showdown') return { handOver: true };
     return { success: true };
   }
 

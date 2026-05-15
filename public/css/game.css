@@ -407,36 +407,40 @@ html, body {
 /* ── Winner overlay ── */
 #winner-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 90;
-  backdrop-filter: blur(6px);
+  pointer-events: none; /* clicks pass through to the table */
+  display: flex;
+  justify-content: center;
 }
 
 #winner-overlay.hidden { display: none; }
 
 #winner-content {
-  background: linear-gradient(135deg, #1c2333, #0d1117);
+  pointer-events: auto;
+  background: rgba(13,17,23,0.94);
   border: 2px solid var(--gold);
-  border-radius: 20px;
-  padding: 36px 48px;
+  border-radius: 16px;
+  padding: 16px 32px;
   text-align: center;
-  box-shadow: 0 0 60px rgba(212,175,55,0.3);
-  animation: winnerPop 0.5s ease-out;
+  box-shadow: 0 0 40px rgba(212,175,55,0.25), 0 8px 32px rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  animation: winnerPop 0.4s ease-out;
+  min-width: 260px;
+  max-width: 420px;
 }
 
 @keyframes winnerPop {
-  from { transform: scale(0.5); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
 }
 
-#winner-content h2 { color: var(--gold); font-size: 1.8rem; margin-bottom: 12px; }
-#winner-content .winner-name { font-size: 1.3rem; font-weight: 700; margin: 8px 0; }
-#winner-content .winner-hand { font-size: 1rem; color: rgba(255,255,255,0.6); }
-#winner-content .winner-amount { font-size: 1.1rem; color: #2ecc71; margin-top: 4px; }
+#winner-content h2 { color: var(--gold); font-size: 1.3rem; margin-bottom: 8px; }
+#winner-content .winner-name { font-size: 1.1rem; font-weight: 700; margin: 4px 0; }
+#winner-content .winner-hand { font-size: 0.9rem; color: rgba(255,255,255,0.55); }
+#winner-content .winner-amount { font-size: 1rem; color: #2ecc71; margin-top: 2px; font-weight: 700; }
 
 /* ── Chat ── */
 #chat-panel {
