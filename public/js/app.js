@@ -479,23 +479,30 @@ function renderWinner(state) {
     return;
   }
   overlay.classList.remove('hidden');
-  const lines = state.winners.map(w =>
-    `<div class="winner-name">🏆 ${w.name}</div>
-     <div class="winner-hand">${w.handName}</div>
-     <div class="winner-amount">+${fmt(w.amount)}</div>`
-  ).join('<hr style="margin:10px 0;opacity:0.2">');
 
-  // "Show Cards" button: any non-spectator whose cards aren't revealed yet
+  const lines = state.winners.map(w => {
+    const player = state.players.find(p => p.id === w.id);
+    const cards = player && player.cards && player.cards.length > 0 ? player.cards : null;
+    const cardsHtml = cards
+      ? `<div style="display:flex;gap:6px;justify-content:center;margin:10px 0">${
+          cards.map(c => {
+            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : 'black';
+            return `<div class="card ${color}" style="width:52px;height:74px"><span class="rank">${c.rank}</span><span class="suit">${c.suit}</span></div>`;
+          }).join('')
+        }</div>`
+      : '';
+    return `<div class="winner-name">🏆 ${w.name}</div>
+             ${cardsHtml}
+             <div class="winner-hand">${w.handName}</div>
+             <div class="winner-amount">+${fmt(w.amount)}</div>`;
+  }).join('<hr style="margin:10px 0;opacity:0.2">');
+
+  // "Show Cards" button for players whose cards aren't revealed yet
   const me = state.players.find(p => p.id === myId);
   const alreadyRevealed = me && me.cards && me.cards.length > 0;
-  const isWinner = state.winners && state.winners.some(w => w.id === myId);
   let showBtn = '';
-  if (!state.isSpectator && myCards.length > 0) {
-    if (!alreadyRevealed && !hasShownCards) {
-      showBtn = `<button class="btn-action btn-call" style="margin-top:16px;width:100%;font-size:0.9rem;padding:11px;" onclick="showMyCards()">👁 Show My Cards</button>`;
-    } else if (alreadyRevealed && !isWinner) {
-      showBtn = `<div style="margin-top:12px;font-size:0.8rem;color:rgba(255,255,255,0.4);text-align:center;">Your cards are shown ✓</div>`;
-    }
+  if (!state.isSpectator && myCards.length > 0 && !alreadyRevealed && !hasShownCards) {
+    showBtn = `<button class="btn-action btn-call" style="margin-top:16px;width:100%;font-size:0.9rem;padding:11px;" onclick="showMyCards()">👁 Show My Cards</button>`;
   }
 
   document.getElementById('winner-content').innerHTML =

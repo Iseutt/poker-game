@@ -25,16 +25,22 @@ html, body {
 /* ── Table ── */
 #table-wrap {
   position: fixed;
-  inset: 0;
+  top: 44px;      /* below info bar */
+  bottom: 220px;  /* above hole cards + action panel */
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 
 #poker-table {
   position: relative;
   width: min(90vw, 900px);
-  height: min(55vw, 560px);
+  aspect-ratio: 900 / 560;
+  /* 120px headroom so player seats (60px each side) stay within the wrap */
+  max-height: calc(100% - 120px);
   background: radial-gradient(ellipse at center, var(--felt-light) 0%, var(--felt) 50%, var(--felt-dark) 100%);
   border-radius: 50%;
   border: 12px solid #5c3a1e;
@@ -263,7 +269,7 @@ html, body {
 /* My hole cards */
 #my-hole-cards {
   position: fixed;
-  bottom: 130px;
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -689,7 +695,7 @@ html, body {
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
-  #poker-table { width: 98vw; height: 58vw; border-width: 6px; }
+  #poker-table { width: 96vw; border-width: 6px; }
   #chat-panel { width: 160px; right: 8px; bottom: 70px; }
   .btn-action { padding: 10px 12px; font-size: 0.75rem; min-width: 60px; }
   #my-hole-cards .card { width: 54px; height: 76px; }
